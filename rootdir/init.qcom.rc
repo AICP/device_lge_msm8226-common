@@ -73,6 +73,7 @@ on early-boot
 on boot
     # bring CPUs online
     write /sys/module/msm_thermal/core_control/enabled 0
+    write /sys/devices/system/cpu/cpu0/online 1
     write /sys/devices/system/cpu/cpu1/online 1
     write /sys/devices/system/cpu/cpu2/online 1
     write /sys/devices/system/cpu/cpu3/online 1
@@ -326,6 +327,13 @@ on post-fs-data
     chown system system /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
     chown system system /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
 
+    #Performance
+    write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "performance"
+    write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor "performance"
+    write /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor "performance"
+    write /sys/devices/system/cpu/cpu3/cpufreq/scaling_governor "performance"
+    write /sys/block/mmcblk0/queue/scheduler "row"
+
     # Allow Torch app use torch
     chown system system /sys/class/leds/led:flash_torch/brightness
     chmod 0666 /sys/class/leds/led:flash_torch/brightness
@@ -554,16 +562,18 @@ on charger
     write /sys/module/msm_pm/modes/cpu2/standalone_power_collapse/suspend_enabled 1
     write /sys/module/msm_pm/modes/cpu3/standalone_power_collapse/suspend_enabled 1
     write /sys/module/msm_show_resume_irq/parameters/debug_mask 1
-    write /sys/devices/system/cpu/cpu1/online 0
-    write /sys/devices/system/cpu/cpu2/online 0
-    write /sys/devices/system/cpu/cpu3/online 0
+    write /sys/devices/system/cpu/cpu1/online 1
+    write /sys/devices/system/cpu/cpu2/online 1
+    write /sys/devices/system/cpu/cpu3/online 1
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "interactive"
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 300000
     chown system /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq
     chown system /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+    chown root system /sys/devices/system/cpu/cpu0/online
     chown root system /sys/devices/system/cpu/cpu1/online
     chown root system /sys/devices/system/cpu/cpu2/online
     chown root system /sys/devices/system/cpu/cpu3/online
+    chmod 664 /sys/devices/system/cpu/cpu0/online
     chmod 664 /sys/devices/system/cpu/cpu1/online
     chmod 664 /sys/devices/system/cpu/cpu2/online
     chmod 664 /sys/devices/system/cpu/cpu3/online
@@ -573,6 +583,7 @@ on charger
     write /sys/module/lpm_levels/enable_low_power/l2 3
     write /sys/class/leds/lcd-backlight/brightness 255
     write /sys/module/msm_pm/modes/cpu0/power_collapse/idle_enabled 0
+    write /sys/devices/system/cpu/cpu0/online 1
     write /sys/devices/system/cpu/cpu1/online 1
     write /sys/devices/system/cpu/cpu2/online 1
     write /sys/devices/system/cpu/cpu3/online 1
@@ -607,15 +618,16 @@ on property:sys.boot_completed=1
     write /sys/devices/system/cpu/cpu1/cpufreq/scaling_min_freq 300000
     write /sys/devices/system/cpu/cpu2/cpufreq/scaling_min_freq 300000
     write /sys/devices/system/cpu/cpu3/cpufreq/scaling_min_freq 300000
+    chown root system /sys/devices/system/cpu/cpu0/online
     chown root system /sys/devices/system/cpu/cpu1/online
     chown root system /sys/devices/system/cpu/cpu2/online
     chown root system /sys/devices/system/cpu/cpu3/online
+    chmod 0664 /sys/devices/system/cpu/cpu0/online
     chmod 0664 /sys/devices/system/cpu/cpu1/online
     chmod 0664 /sys/devices/system/cpu/cpu2/online
     chmod 0664 /sys/devices/system/cpu/cpu3/online
-    start mpdecision
 
-    # StormySea kernel changes
+# StormySea kernel changes
     write /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor "zzmoove"
     write /sys/devices/system/cpu/cpu1/cpufreq/scaling_governor "zzmoove"
     write /sys/devices/system/cpu/cpu2/cpufreq/scaling_governor "zzmoove"
@@ -624,9 +636,27 @@ on property:sys.boot_completed=1
     write /sys/kernel/zen_decision/enabled 0
     write /sys/module/intelli_plug/parameters/intelli_plug_active 1
     write /sys/module/intelli_plug/parameters/touch_boost_active 1
-    write /sys/devices/system/cpu/sched_mc_power_savings 1
-    write /sys/module/cpu_boost/parameters/boost_ms 20
-    write /sys/module/cpu_boost/parameters/sync_threshold 998000
-    write /sys/module/cpu_boost/parameters/input_boost_freq 1094400
-    write /sys/module/cpu_boost/parameters/input_boost_ms 40
-
+    write /sys/devices/system/cpu/sched_mc_power_savings 0
+    write /sys/module/cpu_boost/parameters/boost_ms 0
+    write /sys/module/cpu_boost/parameters/sync_threshold 0
+    write /sys/module/cpu_boost/parameters/input_boost_ms 0
+    write /sys/module/intelli_plug/parameters/nr_run_profile_sel 1
+    write /sys/module/simple_gpu_algorithm/parameters/simple_gpu_activate 1
+    write /sys/module/simple_gpu_algorithm/parameters/simple_ramp_threshold 7000
+    write /sys/module/simple_gpu_algorithm/parameters/simple_laziness 2
+    write /sys/module/intelli_plug/parameters/cpu_nr_run_threshold 1
+    write /proc/sys/vm/dirty_background_ratio 85
+    write /proc/sys/vm/dirty_writeback_centisecs 900
+    write /proc/sys/vm/dirty_expire_centisecs 10
+    write /proc/sys/vm/vfs_cache_pressure 5
+    write /sys/block/zram0/disksize 73400320
+    mkswap /dev/block/zram0 > /dev/null 2>&1
+    swapon /dev/block/zram0 > /dev/null 2>&1
+    swapoff /dev/block/zram0 > /dev/null 2>&1
+    write /sys/block/zram0/reset 1
+    write /sys/block/mmcblk0/queue/read_ahead_kb 512
+    write /sys/block/mmcblk0/queue/rq_affinity 2
+    write /sys/block/mmcblk0/queue/scheduler "row"
+    write /sys/block/mmcblk1/queue/scheduler "row"
+    write /sys/block/mmcblk1/queue/read_ahead_kb 2048
+    write /sys/module/lowmemorykiller/parameters/minfree 1024,2048,3840,9216,14080,27392
